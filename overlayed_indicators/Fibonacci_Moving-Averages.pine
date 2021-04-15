@@ -1,0 +1,75 @@
+//@version=2
+// author: Nick Lysergik
+// LICENSE: AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.en.html
+study(title="Fib Cross", overlay=true)
+
+// The 200 candle MA is used as the 100% level, and the other 3 MAs are the golden ratio 61.8%, 50%, and the 23.6% level as well.
+// You will find that during massive bull runs, on the daily chart, the golden ratio orange MA and the 200 day MA are very important levels to pay attention to relative to last close price.
+// This along with trend angle and bollinger bands can really help identify a good exit at the end of a bull run, whilst helping you avoid getting out too early
+fib1000 = sma(close, 200)
+fib618 = sma(close, 124)
+fib618w = wma(close, 124)
+fib500 = wma(close, 100)
+fib236 = sma(close, 47)
+
+//This is for caluclating whether a liner should really change color or not when closing past a MA
+ma2 = wma(close,3)
+
+// This is used to show smaller cycles in relation to the basis of the 15 candle bollinger band. For crypto, I also recommend using a standard deviation of 3 for bollinger bands
+bollCompliment = wma(close, 15) 
+
+ma1400 = sma(close,1400) // on the daily chart, this represents the 200 week MA
+ma329 = sma(close,329) // on the daily chart, this represents the 47 week MA (23.6% fib relative to 200 week)
+
+cma350 = color(white,42)
+
+c1000 = color(white,0)
+//
+c618 = if ma2 < fib618
+    c618 = color(red, 0)
+else
+    c618 = color(orange, 0)
+//
+c236 = if ma2 < fib236 and fib236 < fib618
+    c236 = color(fuchsia, 35)
+else
+    c236 = color(teal, 0)
+//
+c618w = if ma2 > fib618w and fib618w > fib618
+    c618w = color(green, 0)
+else
+    if ma2 < fib618w and fib618w < fib618
+        c618w = color(red,  0)
+//    
+c500 = if ma2 > fib500 and fib500 > fib618
+    c500 = color(green, 0)
+else
+    if ma2 < fib500 and fib500 < fib618
+        c500 = color(red,  0)
+//
+cwma = if ma2 > bollCompliment and bollCompliment > fib236
+    cwma = color(green, 0)
+else
+    cwma = color (red, 0)
+//    
+cma1400 = if ma2 > ma1400 and ma1400 < fib618
+    color(green, 0)
+else
+    if ma2 < ma1400 and ma1400 > fib618
+        color(red,  0)
+//   
+fibCross = color(#E5BD06,0)
+mainCross = color(white,0)
+
+plot(fib1000, color = c1000, linewidth = 2, title = "200 Candle MA (100%)")
+plot(fib618, color = c618, linewidth = 2, title = "124 Candle MA (61.8%")
+plot(fib618w, color = c618w, linewidth = 1, title = "124 Candle WMA (61.8%)")
+plot(fib500, color = c500, linewidth = 1, title = "100 Candle WMA (50%)")
+plot(fib236, color = c236, linewidth = 2, title = "47 Candle MA (23.6%)")
+
+plot(bollCompliment, color = cwma, linewidth = 1, title = "15 Candle WMA")
+plot(ma1400, color = cma1400, linewidth = 2, title = "")
+plot(ma329, color = cma350, linewidth = 2, title = "47*7 Candle MA")
+
+plot(cross(fib236, fib1000) ? fib236 : na, style = cross, linewidth = 4, color = mainCross)
+plot(cross(fib618, fib1000) ? fib618 : na, style = cross, linewidth = 4, color = fibCross)
