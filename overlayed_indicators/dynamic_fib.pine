@@ -1,0 +1,31 @@
+//@version=3
+//@author=LysergikProductions
+study("Dynamic Fib", shorttitle="DynaFib", overlay=true)
+
+fibLength = input(62, title="Length") //~61.8% of the length from the 100 candle average
+ratio1000 = input(1.0, title="100%") //highest price in range multiplier
+ratio764 = input(0.786, title="76.4%") //fib retrace 76.4%
+ratio500 = input(0.5, title="50%") //fib retrace 50%
+ratio382 = input(0.382, title="38.2%") //fib retrace 38.2%
+ratio236 = input(0.236, title="23.6%") //fib retrace 23.6%
+
+//function to get fib value from data range
+fib(len, ratio) =>
+    range = highest(len) - lowest(len)
+    rangeRatio = highest(len) - (range * ratio)
+
+//creating fib values
+line1000 = highest(fibLength) * ratio1000
+line764 = fib(fibLength, ratio764)
+line500 = fib(fibLength, ratio500)
+line382 = fib(fibLength, ratio382)
+line236 = fib(fibLength, ratio236)
+line000 = lowest(fibLength)
+
+//plotting fib values
+plot(line1000, color=color(white, 5), title="100%", linewidth=2)
+plot(line764, color=color(orange, 5), title="76.4%", linewidth=2)
+plot(line500, color=color(lime, 5), title="50%", linewidth=2)
+plot(line382, color=color(teal, 5), title="38.2%", linewidth=1)
+plot(line236, color=color(blue, 5), title="23.6%", linewidth=1)
+plot(line000, color=color(white, 5), title="0%", linewidth=1)
