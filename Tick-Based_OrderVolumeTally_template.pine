@@ -1,0 +1,172 @@
+//@version=4
+// LICENSE: AGPLv3 (https://www.gnu.org/licenses/agpl-3.0.en.html)
+// Copyright (C) 2021  Lysergik Productions (https://github.com/LysergikProductions)
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+// set overlay == `false` if you want to plot data in its own pane
+study(title="Trend-SI", shorttitle="Trend-SI", format=format.volume, precision=2, scale=scale.right, overlay=true)
+
+i_posColor = input(color.rgb(38, 166, 154), title="Positive Color")
+i_negColor = input(color.rgb(240, 83, 80), title="Negative Color")
+
+var bool showPercent = input(true, title='Show Percentages')
+var bool showAsSupply = input(false, title='Show As Supply')
+
+var buCol = color.black
+var beCol = color.black
+
+varip int ticks = 0
+varip lastPrice = close
+varip lastVol = volume
+
+varip float volChange = 0.0
+varip float diff = 0.0
+
+varip bool isLate = false
+varip string lastDir = 'null'
+
+varip float bullOrder = 0.0
+varip float bearOrder = 0.0
+varip float bullPercent = 0.0
+varip float bearPercent = 0.0
+
+if barstate.isnew and volume != 0
+    isLate := true
+    buCol := color.black
+    beCol := color.black
+
+if barstate.isrealtime and lastPrice != close and lastVol != volume
+    ticks += 1
+    if not isLate
+        volChange := abs(volume-lastVol)
+    
+    if close < lastPrice
+        lastDir := 'down'
+        bearOrder += volChange
+        bearPercent := bearOrder / volume * 100
+        buCol := color.black
+        beCol := i_negColor
+        
+    else if close > lastPrice
+        lastDir := 'up'
+        bullOrder += volChange
+        bullPercent := bullOrder / volume * 100
+        buCol := i_posColor
+        beCol := color.black
+    
+    lastPrice := close
+    lastVol := volume
+    isLate := false
+
+// there was a tick but price did not change, so add half of volChange to each tally
+else if barstate.isrealtime and lastPrice == close and lastVol != volume
+    ticks += 1
+    if not isLate
+        volChange := abs(volume-lastVol)
+        if lastDir == 'up'
+            bullOrder += volChange
+            buCol := i_posColor
+            beCol := color.black
+        else if lastDir == 'down'
+            bearOrder += volChange
+            buCol := color.black
+            beCol := i_negColor
+        else if lastDir != 'up' and lastDir != 'down'
+            bullOrder += volChange/2
+            bearOrder += volChange/2
+            buCol := color.black
+            beCol := color.black
+
+    lastPrice := close
+    lastVol := volume
+    isLate := false
+
+if barstate.isnew
+    ticks := 0
+    lastVol := 0
+    bullOrder := 0
+    bearOrder := 0
+    bullPercent := 0
+    bearPercent := 0
+
+diff := bullOrder-bearOrder
+var table perfTable = table.new(position.bottom_right, 1, 4, border_width = 3)
+
+text_size = input("AUTO", "Text Size:", options=["AUTO", "TINY","SMALL", "NORMAL", "LARGE", "HUGE"])
+table_size = input(6, "Table Width:")
+
+text = size.auto
+if text_size == "TINY"
+    text := size.tiny
+if text_size == "SMALL"
+    text := size.small
+if text_size == "NORMAL"
+    text := size.normal
+if text_size == "LARGE"
+    text := size.large
+if text_size == "HUGE"
+    text := size.huge
+
+x = "k"
+vol1 = volume
+bu1 = bullOrder
+be1 = bearOrder
+
+if lastVol < 1000
+    x := ""
+if lastVol >= 1000
+    vol1 := volume / 1000
+    bu1 := bullOrder / 1000
+    be1 := bearOrder / 1000
+if lastVol >= 1000000
+    x := "M"
+    vol1 := volume / 1000000
+    bu1 := bullOrder / 1000000
+    be1 := bearOrder / 10000000
+if lastVol >= 1000000000
+    x := "B"
+    vol1 := volume / 1000000000
+    bu1 := bullOrder / 1000000000
+    be1 := bearOrder / 1000000000
+
+a = array.new_float(0)
+for i = 1 to 20
+	array.push(a, vol1[i])
+
+m1c = security(syminfo.tickerid, '1', close)
+m1o = security(syminfo.tickerid, '1', open)
+
+f_fillCell(_table, _column, _row, _value, _timeframe) =>
+    _c_color = m1c > m1o ? i_posColor : i_negColor
+    _transp = 85
+    _cellText = tostring(_value, "#.##") + x
+    
+    if showPercent == true
+        _cellText := tostring(_value, "#.##") + x + ' (' + tostring(_value/vol1*100, "0.0") + '%)'
+    
+    table.cell(_table, _column, _row, _cellText, text_color = color.white, width = table_size)
+    
+    table.cell_set_text_size(perfTable, 0, 0, text)
+    table.cell_set_text_size(perfTable, 0, 1, text)    
+    table.cell_set_text_size(perfTable, 0, 2, text)
+    
+    table.cell_set_bgcolor(perfTable, 0, 0, close > open ? color.new(i_posColor, _transp) : color.new(i_negColor, _transp))
+    table.cell_set_bgcolor(perfTable, 0, 1, color.new(buCol, _transp))    
+    table.cell_set_bgcolor(perfTable, 0, 2, color.new(beCol, _transp))
+
+if barstate.islast
+    f_fillCell(perfTable, 0, 0, vol1 , "vol1")
+    f_fillCell(perfTable, 0, 1, bu1, "bu1")
+    f_fillCell(perfTable, 0, 2, be1, "be1")
