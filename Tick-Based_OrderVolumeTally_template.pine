@@ -68,7 +68,7 @@ if barstate.isrealtime and lastPrice != close and lastVol != volume
     lastVol := volume
     isLate := false
 
-// there was a tick but price did not change, so add half of volChange to each tally
+// there was a tick but price did not change, so add half of volChange to each tally, unless last direction was known, then add it to that tally
 else if barstate.isrealtime and lastPrice == close and lastVol != volume
     ticks += 1
     if not isLate
@@ -91,6 +91,7 @@ else if barstate.isrealtime and lastPrice == close and lastVol != volume
     lastVol := volume
     isLate := false
 
+// reset values when a new candle is detected
 if barstate.isnew
     ticks := 0
     lastVol := 0
@@ -108,13 +109,13 @@ table_size = input(6, "Table Width:")
 text = size.auto
 if text_size == "TINY"
     text := size.tiny
-if text_size == "SMALL"
+else if text_size == "SMALL"
     text := size.small
-if text_size == "NORMAL"
+else if text_size == "NORMAL"
     text := size.normal
-if text_size == "LARGE"
+else if text_size == "LARGE"
     text := size.large
-if text_size == "HUGE"
+else if text_size == "HUGE"
     text := size.huge
 
 x = "k"
