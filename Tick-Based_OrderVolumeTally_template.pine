@@ -22,7 +22,6 @@ i_posColor = input(color.rgb(38, 166, 154), title="Positive Color")
 i_negColor = input(color.rgb(240, 83, 80), title="Negative Color")
 
 var bool showPercent = input(true, title='Show Percentages')
-var bool showAsSupply = input(false, title='Show As Supply')
 
 var buCol = color.black
 var beCol = color.black
@@ -30,13 +29,12 @@ var beCol = color.black
 varip int ticks = 0
 varip lastPrice = close
 varip lastVol = volume
-
 varip float volChange = 0.0
-varip float diff = 0.0
 
-varip bool isLate = false
-varip string lastDir = 'null'
+varip bool isLate = false // This will be true when the script recognizes it has not seen data for the current candle's first tick
+varip string lastDir = 'null' // This is used to store the previous tick's affect on the current candle; up or down
 
+varip float diff = 0.0 // This will equal `bullOrder - bearOrder`
 varip float bullOrder = 0.0
 varip float bearOrder = 0.0
 varip float bullPercent = 0.0
