@@ -16,7 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 // set overlay == `false` if you want to plot data in its own pane
-study(title="Trend-SI", shorttitle="Trend-SI", format=format.volume, precision=2, scale=scale.right, overlay=true)
+study(title="Real-Time Volume Analyzer Template", shorttitle="Real-Time Volume Analyzer", format=format.volume, precision=2, scale=scale.right, overlay=true)
 
 i_posColor = input(color.rgb(38, 166, 154), title="Positive Color")
 i_negColor = input(color.rgb(240, 83, 80), title="Negative Color")
