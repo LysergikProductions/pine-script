@@ -1,0 +1,103 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © lysergik
+
+//@version=5
+indicator("Altcoin Analyzer [Lysergik]", shorttitle='AltAnal', precision=8)
+
+// ------------
+// Inputs
+bool use_candles = input.bool(false, 'Use Candles', group='Configs')
+bool heikin = input.bool(true, 'Heikin Candles', group='Configs')
+
+bool mini_display = input.bool(false, 'Mini-Display', 'Show less information in the table', group="Swag")
+bool dark_mode = input.bool(true, 'Dark Mode', group='Swag')
+
+// ------------
+// Data
+float btc_open = request.security("INDEX:BTCUSD",
+     timeframe.period, open, barmerge.gaps_off, barmerge.lookahead_off)
+
+float btc_high = request.security("INDEX:BTCUSD",
+     timeframe.period, high, barmerge.gaps_off, barmerge.lookahead_off)
+
+float btc_low = request.security("INDEX:BTCUSD",
+     timeframe.period, low, barmerge.gaps_off, barmerge.lookahead_off)
+
+float btc_close = request.security("INDEX:BTCUSD",
+     timeframe.period, close, barmerge.gaps_off, barmerge.lookahead_off)
+
+float o = open/btc_open
+float h = high/btc_high
+float l = low/btc_low
+float c = close/btc_close
+
+float btcusd_change = ( ta.highest(btc_high, 2) ) - ( ta.lowest(btc_low, 2) )
+float altusd_change = ( ta.highest(high, 2) ) - ( ta.lowest(low, 2) )
+
+color neutral_col = dark_mode ? color.white : color.black
+color back_col = dark_mode ? color.black : color.white
+
+// ------------
+// Math & Logic
+volatility(_change, _length, _close) =>
+    lowest_roc = ta.lowest(_change, _length)
+    highest_roc = ta.highest(_change, _length)
+    
+    volatility = ta.ema((highest_roc - lowest_roc), 2)
+    percent = volatility/_close*100
+
+btc_volatility = volatility(btcusd_change, 21, btc_close)
+alt_volatility = volatility(altusd_change, 21, close)
+
+src(_src)  => 
+    Close  = not heikin ? c : math.avg(o, h, l, c)
+    Open   = float(na)
+    Open  := not heikin ? o  : na(Open[1]) ? (o + c) / 2 : (nz(Open[1]) + nz(Close[1])) / 2
+    High   = not heikin ? h  : math.max(h, math.max(Open, Close))
+    Low    = not heikin ? l   : math.min(l,  math.min(Open, Close))
+    HL2    = not heikin ? math.avg(l, h)   : math.avg(High, Low) 
+    HLC3   = not heikin ? math.avg(l, h, c)  : math.avg(High, Low, Close) 
+    OHLC4  = not heikin ? math.avg(o, h, l, c) : math.avg(Open, High, Low, Close)
+    Price  = _src == 'close' ? Close : _src == 'open' ? Open : _src == 'high' ? High : _src == 'low' ? Low : _src == 'hl2' ? HL2 : _src == 'hlc3' ? HLC3 : OHLC4  
+    // PineCoders method for aligning Pine prices with chart instrument prices
+    //Source = math.round(Price / syminfo.mintick) * syminfo.mintick
+
+// ------------
+// Front-End
+plot(c, 'Price Line', color=use_candles ? na : neutral_col, trackprice=true)
+
+barColor = not use_candles ? na : src('close') >= src('open') ? color.teal : color.purple
+plotcandle(src('open'), src('high'), src('low'), src('close'),
+     'Candles', color=barColor, wickcolor=not use_candles ? na : color.new(neutral_col, 50), bordercolor=na)
+
+var line realLine = na
+varip lineVis = false
+
+if use_candles and
+     ((lineVis == false and not barstate.isconfirmed) or
+     (barstate.isrealtime and barstate.islast and not barstate.isconfirmed))
+    
+    line.delete(id=realLine)
+    realLine := line.new(x1=bar_index[1], y1=c, x2=bar_index, y2=c, width=1, extend=extend.both)
+    line.set_color(id=realLine, color=c > o ? color.purple : c < o ? color.teal : neutral_col)
+    line.set_style(id=realLine, style=line.style_dashed)
+    
+if barstate.isconfirmed
+    line.delete(id=realLine)
+    lineVis := false
+
+var table disp = table.new(position.bottom_right, 1000, 3)
+
+if barstate.islast
+    if not mini_display
+        table.cell(disp, 0, 0, 'This/BTC:', text_color=neutral_col, text_size=size.auto, bgcolor=back_col)
+        table.cell(disp, 1, 0, str.tostring(c, '0.00000000'), text_color=neutral_col, text_size=size.auto, bgcolor=back_col)
+        
+        table.cell(disp, 0, 1, 'This/USD Volatility:', text_color=neutral_col, text_size=size.auto, bgcolor=back_col)
+        table.cell(disp, 1, 1, str.format('{0}%', math.round(alt_volatility, 2)), text_color=neutral_col, text_size=size.auto, bgcolor=back_col)
+        
+        table.cell(disp, 0, 2, 'BTC/USD Volatility', text_color=neutral_col, text_size=size.auto, bgcolor=back_col)
+        table.cell(disp, 1, 2, str.format('{0}%', math.round(btc_volatility, 2)), text_color=neutral_col, text_size=size.auto, bgcolor=back_col)
+    
+    else if mini_display
+        table.cell(disp, 0, 0, str.tostring(c, '0.00000000'), text_color=neutral_col, text_size=size.auto, bgcolor=back_col)
